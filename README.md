@@ -19,13 +19,14 @@ select **Install** and **Enable**. You can also open the
 [Engiware listing](https://community.obsidian.md/plugins/engiware) and select
 **Add to Obsidian**.
 
-The listing is published under Green Pipe Partners LLC. Its initial automated
-review is complete, with verified artifact attestations and a byte-for-byte
-reproducible build.
+The listing is published under Green Pipe Partners LLC. Version 0.3.1 passed
+Obsidian's automated review with no warnings or recommendations, verified
+artifact attestations, and a byte-for-byte reproducible build.
 
 New listings can take time to reach the in-app catalogue: Obsidian mirrors its
 community directory to the app's catalogue on an hourly schedule. If Engiware
-does not appear in Browse yet, retry after the catalogue sync.
+does not appear in Browse yet, fully quit and reopen Obsidian after the catalogue
+sync to refresh the app's cached list.
 
 ### BRAT
 

@@ -2,6 +2,15 @@
 
 ## Current release
 
+The automated review for **0.3.1** is **complete with zero warnings and zero
+recommendations**. The public scorecard shows **Health: Excellent** and
+**Review: Passed**. Obsidian verified the release attestations and reproduced
+`main.js` byte-for-byte. The review is attached to commit `7893699`.
+
+[Release 0.3.1](https://github.com/GreenPipePartners/obsidian-engiware/releases/tag/0.3.1)
+is also visible in the native Community plugins browser, verified on Obsidian
+1.13.7 for Linux on September 14, 2026.
+
 **0.3.1** addresses all five findings from the initial 0.3.0 review:
 
 | Finding | Resolution |
@@ -36,8 +45,10 @@ the public listing's **Add to Obsidian** link, BRAT, or the individual release f
 At publication, the website's installation link was enabled while the in-app
 catalogue still awaited propagation. Obsidian's
 [catalogue mirror workflow](https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/mirror-community-json.yml)
-runs hourly (`17 * * * *`); the new entry needs that catalogue sync to appear in
-the app's Browse search.
+runs hourly (`17 * * * *`). The entry reached the app catalogue at 22:26 UTC on
+September 14, 2026. GitHub's raw-file cache and Obsidian's fallback proxy can
+retain older lists temporarily; reopening Obsidian refreshes the app's own
+catalogue cache once the upstream list is available.
 
 ## Listing maintenance
 
