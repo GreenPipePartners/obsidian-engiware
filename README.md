@@ -23,6 +23,10 @@ The listing is published under Green Pipe Partners LLC. Its initial automated
 review is complete, with verified artifact attestations and a byte-for-byte
 reproducible build.
 
+New listings can take time to reach the in-app catalogue: Obsidian mirrors its
+community directory to the app's catalogue on an hourly schedule. If Engiware
+does not appear in Browse yet, retry after the catalogue sync.
+
 ### BRAT
 
 In [BRAT](https://github.com/TfTHacker/obsidian42-brat), choose **Add beta plugin**

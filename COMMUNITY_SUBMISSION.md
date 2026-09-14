@@ -22,6 +22,12 @@ settings API retained for Obsidian 1.8.7 compatibility, and two CSS style warnin
 Users can install through **Settings → Community plugins → Browse → Engiware**,
 the public listing's **Add to Obsidian** link, BRAT, or the manual-install ZIP.
 
+At publication, the website's installation link was enabled while the in-app
+catalogue still awaited propagation. Obsidian's
+[catalogue mirror workflow](https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/mirror-community-json.yml)
+runs hourly (`17 * * * *`); the new entry needs that catalogue sync to appear in
+the app's Browse search.
+
 ## Listing maintenance
 
 The public plugin repository is:
