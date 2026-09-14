@@ -7,6 +7,18 @@ attempt fails. Expanding still starts 3D automatically on supported graphics.
 Devices that fail that check keep the image and can choose **Try 3D anyway**.
 See [release notes](RELEASE_NOTES.md) for the interaction and rendering limits.
 
+The automated review for
+[release 0.3.2](https://github.com/GreenPipePartners/obsidian-engiware/releases/tag/0.3.2)
+is **complete with zero warnings and zero recommendations**. The public
+scorecard shows **Health: Excellent** and **Review: Passed**. Obsidian verified
+the release attestations and reproduced `main.js` byte-for-byte from commit
+`20772b5`.
+
+All 18 tests pass. Native checks on Obsidian 1.13.7 for Linux verified automatic
+3D on supported graphics, confirmation before model reads, the reduced-quality
+retry, cancellation, and resource cleanup. Context failures and slow-frame
+timing were simulated; rendering used the real local WebGL implementation.
+
 ## Previous release: 0.3.1
 
 The automated review for **0.3.1** is **complete with zero warnings and zero

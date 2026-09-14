@@ -19,7 +19,7 @@ select **Install** and **Enable**. You can also open the
 [Engiware listing](https://community.obsidian.md/plugins/engiware) and select
 **Add to Obsidian**.
 
-The listing is published under Green Pipe Partners LLC. Version 0.3.1 passed
+The listing is published under Green Pipe Partners LLC. Version 0.3.2 passed
 Obsidian's automated review with no warnings or recommendations, verified
 artifact attestations, and a byte-for-byte reproducible build.
 
