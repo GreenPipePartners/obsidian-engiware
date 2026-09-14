@@ -12,6 +12,17 @@ component images that expand into optional 3D views.
 
 Requires **Obsidian 1.8.7 or later**.
 
+### Community directory
+
+Open **Settings → Community plugins → Browse**, search for **Engiware**, then
+select **Install** and **Enable**. You can also open the
+[Engiware listing](https://community.obsidian.md/plugins/engiware) and select
+**Add to Obsidian**.
+
+The listing is published under Green Pipe Partners LLC. Its initial automated
+review is complete, with verified artifact attestations and a byte-for-byte
+reproducible build.
+
 ### BRAT
 
 In [BRAT](https://github.com/TfTHacker/obsidian42-brat), choose **Add beta plugin**
@@ -30,12 +41,6 @@ Download `engiware-0.3.0.zip` from the
 Extract its `engiware` folder into `<vault>/.obsidian/plugins/`, reload Obsidian,
 and enable **Engiware**. The plugin consists of `main.js`, `manifest.json`, and
 `styles.css`; all runtime dependencies are bundled.
-
-### Community directory
-
-The community listing is being prepared. Once published, Engiware will be
-available through **Settings → Community plugins → Browse**. See
-[community submission](COMMUNITY_SUBMISSION.md) for the listing process.
 
 ## Try the demonstration
 
@@ -122,6 +127,8 @@ accounts, payments, or advertisements. The import command reads the local
 `.engibook` or `.zip` file you explicitly select, including a file outside the
 vault. It writes extracted files only into the current vault through Obsidian's
 public Vault API. Preview images and models are read from the vault.
+During an import, Engiware checks existing vault paths to detect file/folder and
+case-insensitive name collisions before writing any package contents.
 
 ## Development and support
 
