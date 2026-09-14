@@ -1,7 +1,7 @@
 {
   "id": "engiware",
   "name": "Engiware",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minAppVersion": "1.8.7",
   "description": "Import packaged Engibook components and expand lightweight images into optional, on-demand 3D views.",
   "author": "Green Pipe Partners LLC",

@@ -1,21 +1,20 @@
-## Engiware 0.3.0
+## Engiware 0.3.1
 
-First public release of Engiware for Obsidian.
+Addresses the recommendations and warnings from the initial community review.
 
-- Import `.engibook` component packages into a native Markdown note and organized
-  `schematic`, `manuals`, `2d_scaled_component`, and `3d_rendered` asset directories.
-- Open Engibook files directly in Obsidian to inspect and extract their contents.
-- Show lightweight image previews in Reading view and Live Preview. Expand an
-  image to load optional, demand-rendered 3D, with image fallback and image-only mode.
-- Check package inventories and hashes, preserve local edits, and resume interrupted
-  imports without overwriting completed files.
-- Include an original, MIT-licensed demonstration package and a Python packaging tool.
+- Limit import conflict checks to package destination folders and their parents.
+  Preserve case-insensitive collision detection, including an exact destination
+  that exists alongside a differently cased alias.
+- Make all three Engiware controls discoverable in Obsidian 1.13+ settings search.
+  Older supported versions render the same controls from shared definitions.
+- Replace the duplicate viewport-height declaration with an explicit CSS feature
+  query, and use selector specificity for hidden states.
+- Publish the three standard plugin assets: `main.js`, `manifest.json`, and
+  `styles.css`, with GitHub artifact attestations.
 
-Requires Obsidian **1.8.7 or later**. Runtime verification has been performed on
-Obsidian 1.13.7 for Linux. Optional 3D uses WebGL 2; image previews work without it.
+Requires Obsidian **1.8.7 or later**. Update through Community plugins or BRAT.
+For manual installation, download the three release files into your vault's
+`.obsidian/plugins/engiware/` directory, reload Obsidian, and enable Engiware.
 
-For manual installation, extract `engiware-0.3.0.zip` into your vault's
-`.obsidian/plugins/` directory and enable **Engiware**. BRAT users can add
-`https://github.com/GreenPipePartners/obsidian-engiware`.
-
-Import `Demo-Component.engibook` through **Engiware: Import .engibook** to try it.
+The original MIT-licensed [Demo-Component.engibook](https://raw.githubusercontent.com/GreenPipePartners/obsidian-engiware/0.3.1/examples/Demo-Component.engibook)
+is available from the repository. Import it through **Engiware: Import .engibook**.

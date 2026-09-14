@@ -172,13 +172,25 @@ export async function importBook(vault: Vault, bytes: Uint8Array, signal?: Abort
   const folders = new Set(ASSET_DIRECTORIES.map(dir => `${manifest.assetRoot}/${dir}`));
   for (const file of inventory) parents(file.path).forEach(parent => folders.add(parent));
 
-  // Preflight the complete destination before the first write. Existing edits win.
-  const occupied = new Map(vault.getAllLoadedFiles().map(file => [pathKey(file.path), file.path]));
-  const conflicts = new Set<string>();
+  // Inspect only the immediate children of package destination parents. This
+  // catches case aliases without traversing unrelated folders elsewhere in the vault.
+  const destinations = new Map<string, Map<string, string>>();
   for (const path of [...folders, ...inventory.map(file => file.path)]) {
-    const existingPath = occupied.get(pathKey(path));
-    if (existingPath && existingPath !== path) conflicts.add(existingPath);
+    const parentPath = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+    let siblings = destinations.get(parentPath);
+    if (!siblings) destinations.set(parentPath, siblings = new Map<string, string>());
+    siblings.set(pathKey(path), path);
   }
+  const conflicts = new Set<string>();
+  for (const [parentPath, siblings] of destinations) {
+    checkAbort(signal);
+    const parent = parentPath ? vault.getFolderByPath(parentPath) : vault.getRoot();
+    for (const child of parent?.children ?? []) {
+      const destination = siblings.get(pathKey(child.path));
+      if (destination && child.path !== destination) conflicts.add(child.path);
+    }
+  }
+  // Preflight the complete destination before the first write. Existing edits win.
   for (const path of folders) if (vault.getAbstractFileByPath(path) && !vault.getFolderByPath(path)) conflicts.add(path);
   for (const file of inventory) {
     checkAbort(signal);

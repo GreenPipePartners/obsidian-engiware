@@ -24,8 +24,6 @@ export default defineConfig(
         ignoreRegex: ['^Import \\.engibook$'],
         enforceCamelCaseLower: true,
       }],
-      // Declarative settings require Obsidian 1.13; retain the public 1.8.7 API.
-      'obsidianmd/settings-tab/prefer-setting-definitions': 'off',
     },
   },
 );

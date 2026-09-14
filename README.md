@@ -40,15 +40,19 @@ Then enable **Engiware** under **Settings → Community plugins**.
 
 ### Manual installation
 
-Download `engiware-0.3.0.zip` from the
-[latest release](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest).
-Extract its `engiware` folder into `<vault>/.obsidian/plugins/`, reload Obsidian,
-and enable **Engiware**. The plugin consists of `main.js`, `manifest.json`, and
-`styles.css`; all runtime dependencies are bundled.
+Create `<vault>/.obsidian/plugins/engiware/` and download these three files from
+the [latest release](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest)
+into that folder:
+
+- [main.js](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest/download/main.js)
+- [manifest.json](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest/download/manifest.json)
+- [styles.css](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest/download/styles.css)
+
+Reload Obsidian and enable **Engiware**. All runtime dependencies are bundled.
 
 ## Try the demonstration
 
-Download [Demo-Component.engibook](https://github.com/GreenPipePartners/obsidian-engiware/releases/latest/download/Demo-Component.engibook),
+Download [Demo-Component.engibook](https://raw.githubusercontent.com/GreenPipePartners/obsidian-engiware/main/examples/Demo-Component.engibook),
 then run **Engiware: Import .engibook** from the command palette and select it.
 You can also copy an `.engibook` into a vault, open it, and choose **Extract and open**.
 
@@ -118,6 +122,9 @@ Under **Settings → Engiware**:
 - **3D render size:** cap the longest rendered edge at 640, 960, or 1280 pixels.
 - **Interaction frame limit:** 10–30 fps, with 20 fps as the default.
 
+On Obsidian 1.13 or later, these controls also appear in the global settings
+search. Earlier supported versions render the same controls in Engiware's tab.
+
 Views render on demand with no idle animation loop. Closing or switching to the
 image cancels pending work and disposes graphics resources. The renderer lowers
 resolution after slow draws and falls back to the image if draws remain slow.
@@ -131,8 +138,10 @@ accounts, payments, or advertisements. The import command reads the local
 `.engibook` or `.zip` file you explicitly select, including a file outside the
 vault. It writes extracted files only into the current vault through Obsidian's
 public Vault API. Preview images and models are read from the vault.
-During an import, Engiware checks existing vault paths to detect file/folder and
-case-insensitive name collisions before writing any package contents.
+During an import, Engiware checks the immediate children of the package's
+destination folders and their parents for file/folder and case-insensitive name
+collisions before writing any package contents. These checks are scoped to the
+component's destination paths.
 
 ## Development and support
 

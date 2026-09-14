@@ -29,14 +29,26 @@ class MemoryVault {
   nodes = new Map();
   content = new Map();
   writes = [];
+  listedFolders = [];
   beforeWrite = () => {};
-  getAllLoadedFiles() { return [...this.nodes.values()]; }
+  folder(path) {
+    const vault = this;
+    return {
+      path, kind: 'folder',
+      get children() {
+        vault.listedFolders.push(path);
+        return [...vault.nodes.values()].filter(node =>
+          (node.path.includes('/') ? node.path.slice(0, node.path.lastIndexOf('/')) : '') === path);
+      },
+    };
+  }
+  getRoot() { return this.folder(''); }
   getAbstractFileByPath(path) { return this.nodes.get(path) ?? null; }
   getFileByPath(path) { const node = this.nodes.get(path); return node?.kind === 'file' ? node : null; }
   getFolderByPath(path) { const node = this.nodes.get(path); return node?.kind === 'folder' ? node : null; }
   async createFolder(path) {
     assert(!this.nodes.has(path), `Folder already exists: ${path}`);
-    const folder = { path, kind: 'folder' };
+    const folder = this.folder(path);
     this.nodes.set(path, folder);
     this.writes.push(path);
     return folder;
@@ -91,6 +103,48 @@ test('rejects file/folder and case-insensitive destination collisions', async ()
   for (const path of ['Assets', note.toLowerCase()]) {
     const vault = new MemoryVault();
     await vault.createBinary(path, strToU8('existing').buffer);
+    const before = vault.writes.length;
+    await assert.rejects(importBook(vault, bytes), BookConflictError);
+    assert.equal(vault.writes.length, before);
+  }
+});
+
+test('checks destination siblings without traversing unrelated folders', async () => {
+  const { bytes } = await fixture();
+  const vault = new MemoryVault();
+  for (const path of ['Personal', 'Personal/Private', 'Assets', 'Assets/Other-Component']) await vault.createFolder(path);
+  await vault.createBinary('Personal/Private/diary.md', strToU8('unrelated content').buffer);
+  await vault.createBinary('Assets/Other-Component/model.glb', strToU8('unrelated model').buffer);
+  for (const path of ['Personal', 'Personal/Private', 'Assets/Other-Component']) {
+    Object.defineProperty(vault.nodes.get(path), 'children', { get() { throw new Error(`Traversed unrelated folder: ${path}`); } });
+  }
+  await importBook(vault, bytes);
+  vault.listedFolders = [];
+  const again = await importBook(vault, bytes);
+  assert.equal(again.created, 0);
+  assert.deepEqual(new Set(vault.listedFolders), new Set(['', 'Assets', root, ...ASSET_DIRECTORIES.map(dir => `${root}/${dir}`)]));
+  assert.equal(new TextDecoder().decode(vault.content.get('Personal/Private/diary.md')), 'unrelated content');
+});
+
+test('rejects case aliases at ancestors and alongside an exact destination', async () => {
+  const { bytes } = await fixture();
+  for (const parts of [['assets'], ['Assets', 'Assets/example-psu'], ['Assets', root, `${root}/MANUALS`]]) {
+    const vault = new MemoryVault();
+    for (const path of parts) await vault.createFolder(path);
+    const before = vault.writes.length;
+    await assert.rejects(importBook(vault, bytes), BookConflictError);
+    assert.equal(vault.writes.length, before);
+  }
+  for (const aliasFirst of [true, false]) {
+    const vault = new MemoryVault();
+    await importBook(vault, bytes);
+    const exactPath = `${root}/manuals/manual.pdf`;
+    const exact = vault.nodes.get(exactPath);
+    await vault.createBinary(`${root}/manuals/MANUAL.pdf`, strToU8('local duplicate').buffer);
+    if (aliasFirst) {
+      vault.nodes.delete(exactPath);
+      vault.nodes.set(exactPath, exact);
+    }
     const before = vault.writes.length;
     await assert.rejects(importBook(vault, bytes), BookConflictError);
     assert.equal(vault.writes.length, before);

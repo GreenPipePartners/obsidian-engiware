@@ -1,4 +1,5 @@
 import { MarkdownRenderChild, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, normalizePath, parseYaml, setIcon } from 'obsidian';
+import type { SettingDefinitionRender } from 'obsidian';
 import { componentPreview, DEFAULT_SETTINGS, settings as normalizedSettings } from './config';
 import type { ComponentPreview, EngiwareSettings } from './config';
 import type { ViewerHandle, ViewerMetrics } from './viewer';
@@ -261,30 +262,55 @@ class PreviewModal extends Modal {
 class EngiwareSettingsTab extends PluginSettingTab {
   constructor(private plugin: Engiware) { super(plugin.app, plugin); }
 
+  // Obsidian 1.13+ renders and indexes these definitions. The render callbacks
+  // also serve the legacy display() below and preserve numeric dropdown values.
+  getSettingDefinitions() {
+    return [
+      {
+        name: 'Image-only mode',
+        desc: 'Expand images without creating a 3D renderer. Useful for low-powered devices or when WebGL is unavailable.',
+        aliases: ['graphics', 'WebGL', 'fallback'],
+        render: setting => {
+          setting.addToggle(toggle => toggle.setValue(this.plugin.settings.imageOnly).onChange(async value => {
+            this.plugin.settings.imageOnly = value;
+            await this.plugin.saveSettings();
+          }));
+        },
+      },
+      {
+        name: '3D render size',
+        desc: 'Caps the longest rendered edge. Lower sizes reduce graphics work; the original model scale is preserved.',
+        aliases: ['resolution', 'graphics', 'performance'],
+        render: setting => {
+          setting.addDropdown(dropdown => dropdown.addOptions({ '640': 'Low — 640 px', '960': 'Balanced — 960 px', '1280': 'High — 1280 px' })
+            .setValue(String(this.plugin.settings.maxDimension)).onChange(async value => {
+              this.plugin.settings.maxDimension = Number(value);
+              await this.plugin.saveSettings();
+            }));
+        },
+      },
+      {
+        name: 'Interaction frame limit',
+        desc: 'Frames are drawn only when needed. Idle views draw no frames.',
+        aliases: ['fps', 'frame rate', 'performance'],
+        render: setting => {
+          setting.addSlider(slider => slider.setLimits(10, 30, 5).setValue(this.plugin.settings.maxFps).onChange(async value => {
+            this.plugin.settings.maxFps = value;
+            await this.plugin.saveSettings();
+          }));
+        },
+      },
+    ] satisfies SettingDefinitionRender[];
+  }
+
+  // Obsidian before 1.13 calls display(); both paths use the same definitions.
   display(): void {
     this.containerEl.empty();
-    new Setting(this.containerEl)
-      .setName('Image-only mode')
-      .setDesc('Expand images without creating a 3D renderer. Useful for low-powered devices or when WebGL is unavailable.')
-      .addToggle(toggle => toggle.setValue(this.plugin.settings.imageOnly).onChange(async value => {
-        this.plugin.settings.imageOnly = value;
-        await this.plugin.saveSettings();
-      }));
-    new Setting(this.containerEl)
-      .setName('3D render size')
-      .setDesc('Caps the longest rendered edge. Lower sizes reduce graphics work; the original model scale is preserved.')
-      .addDropdown(dropdown => dropdown.addOptions({ '640': 'Low — 640 px', '960': 'Balanced — 960 px', '1280': 'High — 1280 px' })
-        .setValue(String(this.plugin.settings.maxDimension)).onChange(async value => {
-          this.plugin.settings.maxDimension = Number(value);
-          await this.plugin.saveSettings();
-        }));
-    new Setting(this.containerEl)
-      .setName('Interaction frame limit')
-      .setDesc('Frames are drawn only when needed. Idle views draw no frames.')
-      .addSlider(slider => slider.setLimits(10, 30, 5).setDynamicTooltip().setValue(this.plugin.settings.maxFps).onChange(async value => {
-        this.plugin.settings.maxFps = value;
-        await this.plugin.saveSettings();
-      }));
+    this.getSettingDefinitions().forEach(definition => {
+      const setting = new Setting(this.containerEl).setName(definition.name);
+      if (definition.desc) setting.setDesc(definition.desc);
+      definition.render(setting);
+    });
   }
 }
 

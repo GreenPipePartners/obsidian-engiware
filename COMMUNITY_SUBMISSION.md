@@ -1,6 +1,21 @@
 # Obsidian community listing
 
-## Submission status
+## Current release
+
+**0.3.1** addresses all five findings from the initial 0.3.0 review:
+
+| Finding | Resolution |
+|---|---|
+| Extra release attachments | Release workflow uploads the three standard plugin files; the demo is downloaded from the repository. |
+| Vault enumeration | Import preflight checks immediate children of destination parents, with regression coverage for unrelated folders and case aliases. |
+| Settings search | Shared setting definitions power Obsidian 1.13+ search and the legacy settings renderer. |
+| Duplicate CSS height | Dynamic viewport height uses a feature query with a compatible fallback. |
+| CSS `!important` | Hidden-state selector has sufficient specificity. |
+
+See the [maintainer dashboard](https://community.obsidian.md/account/plugins/engiware)
+for review results tied to each release and commit.
+
+## Initial submission
 
 Engiware **0.3.0** was submitted and published on **September 14, 2026**, owned by
 the **Green Pipe Partners LLC** community organization (`greenpipepartners`).
@@ -15,12 +30,8 @@ Checks verified the artifact attestations for `main.js` and `styles.css`, found
 no vulnerable dependencies or code obfuscation, and reproduced `main.js`
 byte-for-byte from source.
 
-Non-blocking review notes cover the intentionally additional manual-install
-ZIP/demo assets, vault-path enumeration for collision detection, the classic
-settings API retained for Obsidian 1.8.7 compatibility, and two CSS style warnings.
-
 Users can install through **Settings → Community plugins → Browse → Engiware**,
-the public listing's **Add to Obsidian** link, BRAT, or the manual-install ZIP.
+the public listing's **Add to Obsidian** link, BRAT, or the individual release files.
 
 At publication, the website's installation link was enabled while the in-app
 catalogue still awaited propagation. Obsidian's
