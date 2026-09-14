@@ -157,6 +157,9 @@ class PreviewModal extends Modal {
   private imageButton!: HTMLButtonElement;
   private modelButton!: HTMLButtonElement;
   private resetButton!: HTMLButtonElement;
+  private compatibilityPrompt!: HTMLDivElement;
+  private keepImageButton!: HTMLButtonElement;
+  private pendingConfirmation: ((confirmed: boolean) => void) | null = null;
   private opened = false;
 
   constructor(private plugin: Engiware, private preview: ComponentPreview, private sourcePath: string) {
@@ -174,6 +177,28 @@ class PreviewModal extends Modal {
     this.imageButton.addEventListener('click', () => this.showImage('Image preview.'));
     this.modelButton.addEventListener('click', () => { void this.show3D(); });
     this.resetButton.addEventListener('click', () => this.viewer?.reset());
+    this.compatibilityPrompt = this.contentEl.createDiv({
+      cls: 'engiware-compatibility-prompt',
+      attr: { role: 'group', 'aria-label': 'Try 3D anyway?', 'aria-describedby': 'engiware-compatibility-message' },
+    });
+    this.compatibilityPrompt.createEl('strong', { text: 'Try 3D anyway?' });
+    this.compatibilityPrompt.createEl('p', {
+      text: 'The standard graphics attempt failed. This computer may not be equipped for interactive 3D. You can try reduced-quality rendering, which may be slow or unresponsive. Use Image or Esc to stop 3D.',
+      attr: { id: 'engiware-compatibility-message' },
+    });
+    const choices = this.compatibilityPrompt.createDiv({ cls: 'engiware-toolbar' });
+    this.keepImageButton = choices.createEl('button', { text: 'Keep Image', attr: { type: 'button' } });
+    this.keepImageButton.addEventListener('click', () => {
+      this.showImage('Image preview. Select 3D view to load the optional model.');
+      this.modelButton.focus();
+    });
+    choices.createEl('button', { text: 'Try 3D anyway', attr: { type: 'button' } }).addEventListener('click', () => {
+      if (!this.pendingConfirmation) return;
+      this.finishConfirmation(true);
+      this.renderHost.hidden = false;
+      this.status.setText('Loading reduced-quality 3D view…');
+      this.imageButton.focus();
+    });
     this.stage = this.contentEl.createDiv({ cls: 'engiware-stage' });
     this.poster = this.stage.createEl('img', { cls: 'engiware-poster', attr: { alt: this.preview.title } });
     const url = this.plugin.imageUrl(this.preview, this.sourcePath);
@@ -189,6 +214,7 @@ class PreviewModal extends Modal {
   private releaseViewer(): void {
     this.request?.abort();
     this.request = null;
+    this.finishConfirmation(false);
     this.viewer?.dispose();
     this.viewer = null;
     this.renderHost?.empty();
@@ -205,6 +231,24 @@ class PreviewModal extends Modal {
     this.status.setText(status);
   }
 
+  private finishConfirmation(confirmed: boolean): void {
+    const resolve = this.pendingConfirmation;
+    this.pendingConfirmation = null;
+    if (this.compatibilityPrompt) this.compatibilityPrompt.hidden = true;
+    resolve?.(confirmed);
+  }
+
+  private confirmCompatibility(request: AbortController): Promise<boolean> {
+    if (!this.opened || request.signal.aborted || this.request !== request) return Promise.resolve(false);
+    return new Promise(resolve => {
+      this.pendingConfirmation = resolve;
+      this.renderHost.hidden = true;
+      this.compatibilityPrompt.hidden = false;
+      this.status.setText('Waiting for your choice. The 3D model has not been loaded.');
+      this.keepImageButton.focus();
+    });
+  }
+
   private async show3D(): Promise<void> {
     if (!this.opened || this.plugin.settings.imageOnly) return;
     this.releaseViewer();
@@ -219,7 +263,7 @@ class PreviewModal extends Modal {
     try {
       const file = this.plugin.resolve(this.preview.model, this.sourcePath);
       if (!(file instanceof TFile)) throw new Error(`Model not found: ${this.preview.model}`);
-      // esbuild keeps this module's initialization behind the expansion action.
+      // esbuild keeps this module's initialization behind the expansion or 3D action.
       const { createViewer } = await import('./viewer');
       if (!current()) return;
       const viewer = await createViewer({
@@ -227,18 +271,22 @@ class PreviewModal extends Modal {
         signal: request.signal,
         settings: { ...this.plugin.settings },
         metrics: this.plugin.metrics,
+        confirmCompatibility: () => this.confirmCompatibility(request),
         readModel: () => {
           this.plugin.metrics.modelReads++;
           return this.app.vault.readBinary(file);
         },
-        onReady: () => {
+        onReady: compatibilityMode => {
           if (!current()) return;
           this.poster.hidden = true;
           this.modelButton.disabled = false;
           this.resetButton.disabled = false;
           this.modelButton.setAttribute('aria-pressed', 'true');
           this.imageButton.setAttribute('aria-pressed', 'false');
-          this.status.setText('Drag to orbit · scroll or pinch to zoom · right-drag to pan. Use Image or Esc to release 3D.');
+          this.status.setText(`${compatibilityMode ? 'Reduced-quality 3D. ' : ''}Drag to orbit · scroll or pinch to zoom · right-drag to pan. Use Image or Esc to release 3D.`);
+        },
+        onSlowRender: () => {
+          if (current()) this.status.setText('3D is rendering slowly. Reduced quality is in use. You can keep using 3D, or choose Image or Esc to release it.');
         },
         onFallback: reason => {
           if (current()) this.showImage(`${reason} Image preview is still available.`);

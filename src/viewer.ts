@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { EngiwareSettings } from './config';
+import { requestGraphicsContext } from './graphics';
 
 export interface ViewerMetrics {
   opens: number;
@@ -14,6 +15,7 @@ export interface ViewerMetrics {
   lastModelSize?: number[];
   lastDrawMs?: number;
   depthBits?: number;
+  lastRenderMode?: 'standard' | 'compatibility';
 }
 
 export interface ViewerHandle { dispose(): void; reset(): void; }
@@ -24,7 +26,9 @@ interface Options {
   settings: EngiwareSettings;
   metrics: ViewerMetrics;
   readModel(): Promise<ArrayBuffer>;
-  onReady(): void;
+  confirmCompatibility(): Promise<boolean>;
+  onReady(compatibilityMode: boolean): void;
+  onSlowRender(): void;
   onFallback(reason: string): void;
 }
 
@@ -33,18 +37,14 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
   const doc = host.ownerDocument;
   const win = doc.defaultView!;
   if (signal.aborted) throw new DOMException('Closed', 'AbortError');
-  const canvas = host.createEl('canvas', { cls: 'engiware-canvas is-loading' });
-  // Standard browser capability negotiation; no GPU vendor or desktop flags.
-  const context = canvas.getContext('webgl2', {
-    alpha: true,
-    antialias: settings.maxDimension > 640,
-    stencil: true,
-    powerPreference: 'low-power',
-    failIfMajorPerformanceCaveat: true,
+  const { canvas, context, compatibilityMode } = await requestGraphicsContext({
+    host, signal, maxDimension: settings.maxDimension,
+    confirmCompatibility: () => options.confirmCompatibility(),
   });
-  if (!context) {
+  if (signal.aborted) {
+    context.getExtension('WEBGL_lose_context')?.loseContext();
     canvas.remove();
-    throw new Error('Interactive 3D is unavailable on this device.');
+    throw new DOMException('Closed', 'AbortError');
   }
 
   let renderer: THREE.WebGLRenderer;
@@ -56,6 +56,7 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
   }
   metrics.contextsCreated++;
   metrics.activeViewers++;
+  metrics.lastRenderMode = compatibilityMode ? 'compatibility' : 'standard';
   const depthBits: unknown = context.getParameter(context.DEPTH_BITS);
   metrics.depthBits = typeof depthBits === 'number' ? depthBits : undefined;
   renderer.setPixelRatio(1);
@@ -78,9 +79,10 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
   let model: THREE.Object3D | null = null;
   let environment: THREE.WebGLRenderTarget | null = null;
   let sphere: THREE.Sphere | null = null;
-  let disposed = false, ready = false, firstFrame = true, dirty = true;
+  let disposed = false, ready = false, firstFrame = true, dirty = true, warnedSlow = false;
   let frame = 0, timer = 0, lastDraw = 0, slowFrames = 0;
-  let renderLimit = settings.maxDimension;
+  let renderLimit = compatibilityMode ? Math.min(640, settings.maxDimension) : settings.maxDimension;
+  let frameLimit = compatibilityMode ? Math.min(10, settings.maxFps) : settings.maxFps;
   const cancel = () => { win.cancelAnimationFrame(frame); win.clearTimeout(timer); frame = timer = 0; };
   const invalidate = () => { dirty = true; schedule(); };
 
@@ -89,7 +91,7 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
     timer = win.setTimeout(() => {
       timer = 0;
       frame = win.requestAnimationFrame(draw);
-    }, Math.max(0, 1000 / settings.maxFps - (win.performance.now() - lastDraw)));
+    }, Math.max(0, 1000 / frameLimit - (win.performance.now() - lastDraw)));
   }
 
   function fallback(reason: string): void {
@@ -120,10 +122,14 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
         firstFrame = false;
         canvas.removeClass('is-loading');
         controls.enabled = true;
-        options.onReady();
+        options.onReady(compatibilityMode);
       } else if (elapsed > 80) {
+        frameLimit = Math.min(10, frameLimit);
         if (renderLimit > 640) { renderLimit = 640; resize(); }
-        else if (++slowFrames >= 2) { fallback('3D is taking too long to render on this device.'); return; }
+        if (++slowFrames >= 2 && !warnedSlow) {
+          warnedSlow = true;
+          options.onSlowRender();
+        }
       } else slowFrames = 0;
       schedule();
     } catch { fallback('The 3D renderer could not finish this view.'); }
@@ -208,7 +214,7 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
     metrics.lastModelSize = box.getSize(new THREE.Vector3()).toArray();
     const room = new RoomEnvironment();
     const generator = new THREE.PMREMGenerator(renderer);
-    try { environment = generator.fromScene(room, 0.04, 0.1, 100, { size: 128 }); }
+    try { environment = generator.fromScene(room, 0.04, 0.1, 100, { size: compatibilityMode ? 64 : 128 }); }
     finally { room.dispose(); generator.dispose(); }
     scene.environment = environment.texture;
     scene.environmentIntensity = 1;

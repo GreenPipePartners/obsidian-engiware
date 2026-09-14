@@ -2,6 +2,13 @@
 
 ## Current release
 
+**0.3.2** adds an explicit, reduced-quality WebGL retry when the normal graphics
+attempt fails. Expanding still starts 3D automatically on supported graphics.
+Devices that fail that check keep the image and can choose **Try 3D anyway**.
+See [release notes](RELEASE_NOTES.md) for the interaction and rendering limits.
+
+## Previous release: 0.3.1
+
 The automated review for **0.3.1** is **complete with zero warnings and zero
 recommendations**. The public scorecard shows **Health: Excellent** and
 **Review: Passed**. Obsidian verified the release attestations and reproduced

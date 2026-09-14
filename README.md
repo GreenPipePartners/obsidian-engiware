@@ -111,9 +111,16 @@ focus the image and press Enter/Space, to initialize the optional viewer.
 Drag to orbit, scroll or pinch to zoom, and right-drag to pan. **Reset view**
 fits the camera to the model without changing its geometry, axes, or scale.
 
-**Image**, **Esc**, or closing the modal releases its 3D resources. If WebGL 2
-is unavailable, the expanded image stays usable. No hardware-vendor configuration
-is required.
+**Image**, **Esc**, or closing the modal releases its 3D resources.
+
+If the normal graphics attempt fails, the expanded image stays visible with a
+**Try 3D anyway?** confirmation. Choose **Keep Image**, or **Try 3D anyway** to
+allow the browser's available WebGL 2 implementation, including software
+rendering where supported. The retry uses reduced quality (640 px, up to 10 fps,
+no antialiasing) and may be slow. No model is read or decoded while the confirmation
+is open. The choice applies to that attempt; it does not change your saved settings.
+If WebGL 2 is still unavailable, the image remains usable with an explanation.
+No hardware-vendor configuration is required.
 
 ### Performance settings
 
@@ -128,7 +135,9 @@ search. Earlier supported versions render the same controls in Engiware's tab.
 
 Views render on demand with no idle animation loop. Closing or switching to the
 image cancels pending work and disposes graphics resources. The renderer lowers
-resolution after slow draws and falls back to the image if draws remain slow.
+resolution and the interaction frame limit after slow draws, and shows a warning
+if they remain slow. It keeps the 3D view available until you switch back to the
+image. Graphics errors or a lost WebGL context still return to the image.
 GLBs must embed their resources; external texture downloads and external
 compression decoders are not used.
 
@@ -153,8 +162,9 @@ npm run verify
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release instructions.
 Builds and tests are self-contained. Runtime checks have been performed on
-Obsidian 1.13.7 for Linux, including no-WebGL image fallback, PDF/Excalidraw
-compatibility, import conflicts, cancellation, and resource cleanup. Mobile
+Obsidian 1.13.7 for Linux, including graphics confirmation and retry, simulated
+slow draws and no-WebGL image fallback, PDF/Excalidraw compatibility, import
+conflicts, cancellation, and resource cleanup. Mobile
 runtime testing is still pending; the plugin uses browser-compatible APIs.
 
 Report bugs or request features in

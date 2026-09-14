@@ -7,8 +7,9 @@ npm ci
 npm run verify
 ```
 
-`verify` runs the Obsidian ESLint checks, TypeScript, package-import tests, the
-production build, and release metadata validation. Tests and example assets are
+`verify` runs the Obsidian ESLint checks, TypeScript, package-import and graphics
+confirmation tests, the production build, and release metadata validation.
+Tests and example assets are
 self-contained in this repository.
 
 The plugin supports Obsidian 1.8.7 and newer. The development types include the
@@ -16,8 +17,12 @@ The plugin supports Obsidian 1.8.7 and newer. The development types include the
 types with the project's version. Settings use a shared definition for modern
 search indexing and the legacy `display()` renderer. Keep runtime code browser-compatible
 and preserve the image-first behavior: no WebGL context or renderer model load
-before the user expands an image. Validate imports before writing and preserve
-existing user edits. Inspect package destination parents for conflicts, rather
+before the user expands an image. Successful normal graphics should load 3D on
+expansion. After that check fails, keep the image visible and wait for explicit
+confirmation before the reduced-quality retry or any model read. Closing or
+choosing Image must cancel a pending confirmation as well as a model load.
+Validate imports before writing and preserve existing user edits. Inspect
+package destination parents for conflicts, rather
 than enumerating the whole vault.
 
 To regenerate the original demonstration package, run `npm run demo`. To package
@@ -29,7 +34,7 @@ another component, see [ENGIBOOK.md](ENGIBOOK.md).
    and `RELEASE_NOTES.md` together.
 2. Run `npm run verify` and verify the changed behavior in Obsidian.
 3. Commit, then push an annotated tag matching the manifest version exactly,
-   for example `0.3.1` **without** a `v` prefix.
+   for example `0.3.2` **without** a `v` prefix.
 
 The release workflow builds and attests the plugin, then publishes the individual
 `main.js`, `manifest.json`, and `styles.css` assets that Obsidian and BRAT install.

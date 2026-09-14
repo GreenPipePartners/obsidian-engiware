@@ -55,6 +55,16 @@
 }
 .engiware-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .engiware-toolbar button[aria-pressed="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
+.engiware-compatibility-prompt {
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: auto;
+}
+.engiware-compatibility-prompt p { margin: 8px 0 12px; }
+.engiware-compatibility-prompt .engiware-toolbar { margin-bottom: 0; }
 .engiware-stage {
   position: relative;
   flex: 1;
