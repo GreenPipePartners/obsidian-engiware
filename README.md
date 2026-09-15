@@ -19,7 +19,7 @@ select **Install** and **Enable**. You can also open the
 [Engiware listing](https://community.obsidian.md/plugins/engiware) and select
 **Add to Obsidian**.
 
-The listing is published under Green Pipe Partners LLC. Version 0.3.2 passed
+The listing is published under Green Pipe Partners LLC. Version 0.4.0 passed
 Obsidian's automated review with no warnings or recommendations, verified
 artifact attestations, and a byte-for-byte reproducible build.
 
@@ -183,7 +183,8 @@ npm run verify
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release instructions.
 Builds and tests are self-contained. Runtime checks have been performed on
 Obsidian 1.13.7 for Linux, including graphics confirmation and retry, simulated
-slow draws and no-WebGL image fallback, PDF/Excalidraw compatibility, import
+slow draws and no-WebGL image fallback, PDF/Excalidraw compatibility, configurable
+deployment paths, versioned replacement, interrupted-upgrade resumption, import
 conflicts, cancellation, and resource cleanup. Mobile
 runtime testing is still pending; the plugin uses browser-compatible APIs.
 

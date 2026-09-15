@@ -7,6 +7,23 @@ newer-version replacement, resumable deployments, and a searchable **Deployment
 directory** setting with **`EngiLib`** as its default. See the
 [format guide](ENGIBOOK.md) and [release notes](RELEASE_NOTES.md).
 
+The automated review for
+[release 0.4.0](https://github.com/GreenPipePartners/obsidian-engiware/releases/tag/0.4.0)
+completed on **September 15, 2026 (UTC)** with **zero warnings and zero
+recommendations**. The public listing shows version **0.4.0**, **Health:
+Excellent**, and **Review: Passed**. Obsidian verified the `main.js` and
+`styles.css` artifact attestations, found no vulnerable dependencies or code
+obfuscation, and reproduced `main.js` byte-for-byte from commit `a7b9ffa`.
+
+All **39 tests** pass, with zero lint warnings and successful TypeScript, build,
+and release checks. Native checks on Obsidian 1.13.7 for Linux verified searchable
+settings and persistence, default/custom deployment folders, replacement of
+locally edited packaged files, idempotent reimport, downgrade rejection, and
+resumption after a simulated storage interruption. The Allen-Bradley component
+opens from `EngiLib/AB_1606-XLE240E.md` with all 17 file links and 9 deployed hashes
+verified. Its image and GLB render, imports create no graphics context, and
+repackaging the deployed component reproduces the portable archive byte-for-byte.
+
 ## Previous release: 0.3.2
 
 **0.3.2** adds an explicit, reduced-quality WebGL retry when the normal graphics
