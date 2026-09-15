@@ -53,36 +53,53 @@ Reload Obsidian and enable **Engiware**. All runtime dependencies are bundled.
 
 ## Try the demonstration
 
-Download [Demo-Component.engibook](https://raw.githubusercontent.com/GreenPipePartners/obsidian-engiware/main/examples/Demo-Component.engibook),
+Download [GPP_Demo-Component_1.0.0.engibook](https://raw.githubusercontent.com/GreenPipePartners/obsidian-engiware/main/examples/GPP_Demo-Component_1.0.0.engibook),
 then run **Engiware: Import .engibook** from the command palette and select it.
-You can also copy an `.engibook` into a vault, open it, and choose **Extract and open**.
+You can also copy an `.engibook` into a vault, open it, and choose **Deploy and open**.
 
 The demo contains an original 40 × 80 × 30 mm model, a scaled SVG front view,
 an illustrative contact schematic, a guide, and a preview image, all MIT-licensed.
 
 ## Component packages
 
-An `.engibook` is a ZIP archive with an inventory and file hashes. Importing one creates:
+Engibooks use **`{provider_code}_{part_number}_{engibook_version}.engibook`**.
+Underscores separate the fields; hyphens within a part number are preserved.
+For example, `AB_1606-XLE240E_1.0.0.engibook` uses `AB` for Allen-Bradley.
+
+The content version is independent of the plugin version. All versions of that
+part deploy to the stable ID **`AB_1606-XLE240E`**. The default layout is:
 
 ```text
-<component-id>.md
-Assets/<component-id>/
-├── schematic/
-├── manuals/
-├── 2d_scaled_component/
-├── 3d_rendered/
-├── asset-provenance.json
-└── engibook.json
+EngiLib/
+├── AB_1606-XLE240E.md
+└── Assets/AB_1606-XLE240E/
+    ├── schematic/
+    ├── manuals/
+    ├── 2d_scaled_component/
+    ├── 3d_rendered/
+    ├── asset-provenance.json
+    └── engibook.json
 ```
+
+Choose the folder under **Settings → Engiware → Deployment directory**.
+It defaults to **`EngiLib`**; nested folders are supported, and an empty value
+uses the vault root. The setting applies to subsequent imports. Asset links are
+adjusted for the chosen location, including PDF anchors and the image/GLB paths.
 
 The extracted note and assets work as native vault files. Obsidian can link,
 index, edit, and sync them. PDF files open in the native viewer; editable
 `.excalidraw.md` drawings use the separate Excalidraw community plugin.
 
-Engiware checks the complete inventory and hashes before extraction, reuses
-identical existing files, and reports conflicting local edits. Interrupted
-imports can be repeated to complete missing files. The archive is a snapshot;
-editing extracted files does not rewrite it.
+Engiware validates the inventory and hashes before deployment. A **newer content
+version replaces the files listed in its package, including local edits**.
+Files absent from the new inventory stay in place. Identical packages can be
+reimported without rewriting files; older versions and conflicting reuse of a
+version number are rejected. Interrupted deployments can be resumed by importing
+the package again. The installed version is committed after the assets and note.
+
+New versioned packages use **format v2**, supported by Engiware **0.4.0+**.
+Legacy v1 packages can still be imported. The archive is a snapshot; editing
+extracted files does not rewrite it.
 
 See [Engibook format and packaging](ENGIBOOK.md) to create your own packages.
 
@@ -92,8 +109,8 @@ Add an `engiware` code block to a note:
 
 ````markdown
 ```engiware
-model: Assets/Demo-Component/3d_rendered/model.glb
-image: Assets/Demo-Component/3d_rendered/preview.svg
+model: EngiLib/Assets/GPP_Demo-Component/3d_rendered/model.glb
+image: EngiLib/Assets/GPP_Demo-Component/3d_rendered/preview.svg
 title: Demo component
 height: 420
 ```
@@ -154,6 +171,9 @@ collisions before writing any package contents. These checks are scoped to the
 component's destination paths.
 
 ## Development and support
+
+Development checks require Node.js 22.18+ and Python 3.10+ (the packager uses
+only Python's standard library). Python is not needed to install or use the plugin.
 
 ```sh
 npm ci

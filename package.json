@@ -1,6 +1,6 @@
 {
   "name": "obsidian-engiware",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "description": "Packaged engineering components and image-first, on-demand 3D previews for Obsidian",
   "license": "MIT",

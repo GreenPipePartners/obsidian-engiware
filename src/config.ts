@@ -1,3 +1,5 @@
+import { DEFAULT_DEPLOYMENT_DIRECTORY, normalizeDeploymentDirectory } from './deployment.ts';
+
 export interface ComponentPreview {
   model: string;
   image: string;
@@ -6,12 +8,14 @@ export interface ComponentPreview {
 }
 
 export interface EngiwareSettings {
+  deploymentDirectory: string;
   imageOnly: boolean;
   maxDimension: number;
   maxFps: number;
 }
 
 export const DEFAULT_SETTINGS: EngiwareSettings = {
+  deploymentDirectory: DEFAULT_DEPLOYMENT_DIRECTORY,
   imageOnly: false,
   maxDimension: 960,
   maxFps: 20,
@@ -38,7 +42,13 @@ export function componentPreview(value: unknown): ComponentPreview {
 
 export function settings(value: unknown): EngiwareSettings {
   const input = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  let deploymentDirectory = DEFAULT_DEPLOYMENT_DIRECTORY;
+  if (typeof input.deploymentDirectory === 'string') {
+    try { deploymentDirectory = normalizeDeploymentDirectory(input.deploymentDirectory); }
+    catch { /* Keep the default for invalid persisted paths. */ }
+  }
   return {
+    deploymentDirectory,
     imageOnly: input.imageOnly === true,
     maxDimension: [640, 960, 1280].includes(Number(input.maxDimension)) ? Number(input.maxDimension) : DEFAULT_SETTINGS.maxDimension,
     maxFps: typeof input.maxFps === 'number' && Number.isFinite(input.maxFps) ? Math.round(Math.min(30, Math.max(10, input.maxFps))) : DEFAULT_SETTINGS.maxFps,

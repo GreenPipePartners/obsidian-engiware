@@ -19,7 +19,7 @@ export default defineConfig(
     files: ['src/**/*.ts'],
     rules: {
       'obsidianmd/ui/sentence-case': ['warn', {
-        brands: ['Engiware', 'Engibook', 'WebGL', 'Image', 'Esc'],
+        brands: ['Engiware', 'Engibook', 'EngiLib', 'WebGL', 'Image', 'Esc'],
         acronyms: ['3D', 'GLB', 'PDF'],
         ignoreRegex: ['^Import \\.engibook$'],
         enforceCamelCaseLower: true,

@@ -2,6 +2,13 @@
 
 ## Current release
 
+**0.4.0** introduces underscore-separated versioned package names, format v2,
+newer-version replacement, resumable deployments, and a searchable **Deployment
+directory** setting with **`EngiLib`** as its default. See the
+[format guide](ENGIBOOK.md) and [release notes](RELEASE_NOTES.md).
+
+## Previous release: 0.3.2
+
 **0.3.2** adds an explicit, reduced-quality WebGL retry when the normal graphics
 attempt fails. Expanding still starts 3D automatically on supported graphics.
 Devices that fail that check keep the image and can choose **Try 3D anyway**.

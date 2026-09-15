@@ -1,10 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { BoxGeometry } from 'three';
 import { zipSync, strToU8 } from 'fflate';
+import { bookFilename, componentIdentity } from '../src/engibook.ts';
 
 // Original, MIT-licensed demonstration data. No external CAD or documents needed.
-const id = 'Demo-Component', root = `Assets/${id}`;
+const identity = componentIdentity('GPP', 'Demo-Component', '1.0.0');
+const id = identity.id, root = `Assets/${id}`;
 const geometry = new BoxGeometry(0.04, 0.08, 0.03).translate(0, 0.04, 0);
 geometry.computeBoundingBox();
 const arrays = [geometry.attributes.position.array, geometry.attributes.normal.array, geometry.index.array];
@@ -46,6 +48,9 @@ const contact = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200
 <text x="300" y="170" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#233743">Illustrative dry contact</text></svg>`;
 const note = `---
 type: component
+provider_code: ${identity.providerCode}
+part_number: ${identity.partNumber}
+engibook_version: ${identity.engibookVersion}
 catalog_number: Demo-Component
 tags: [engineering/components, engiware-demo]
 ---
@@ -85,10 +90,14 @@ const files = {
   [`${root}/asset-provenance.json`]: strToU8(JSON.stringify({ source: 'Original Engiware demonstration', license: 'MIT', dimensions_mm: [40, 80, 30], drawing_units_per_mm: 4 }, null, 2) + '\n'),
 };
 const manifest = {
-  format: 'engibook', formatVersion: 1, id, title: 'Demo component', entrypoint: `${id}.md`, assetRoot: root,
+  format: 'engibook', formatVersion: 2, ...identity, title: 'Demo component', entrypoint: `${id}.md`, assetRoot: root,
   files: Object.entries(files).map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') })),
 };
 await mkdir('examples', { recursive: true });
 await writeFile('examples/preview.svg', image);
-await writeFile('examples/Demo-Component.engibook', zipSync({ 'engibook.json': strToU8(JSON.stringify(manifest, null, 2) + '\n'), ...files }, { level: 6, mtime: new Date(2020, 0, 1) }));
-console.log('Generated examples/Demo-Component.engibook and examples/preview.svg');
+const output = `examples/${bookFilename(manifest)}`;
+const bytes = zipSync({ 'engibook.json': strToU8(JSON.stringify(manifest, null, 2) + '\n'), ...files }, { level: 6, mtime: new Date(2020, 0, 1) });
+const previous = await readFile(output).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+if (previous && !previous.equals(bytes)) throw new Error('Demo contents changed. Increment the Engibook content version before regenerating.');
+await writeFile(output, bytes);
+console.log(`Generated ${output} and examples/preview.svg`);

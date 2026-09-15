@@ -5,6 +5,7 @@ import type { ComponentPreview, EngiwareSettings } from './config';
 import type { ViewerHandle, ViewerMetrics } from './viewer';
 import { EngibookView, ENGIBOOK_VIEW } from './engibook-view';
 import type { BookImport } from './engibook';
+import { normalizeDeploymentDirectory } from './deployment.ts';
 
 export default class Engiware extends Plugin {
   settings: EngiwareSettings = { ...DEFAULT_SETTINGS };
@@ -37,6 +38,7 @@ export default class Engiware extends Plugin {
   }
 
   async importEngibook(bytes: Uint8Array, signal?: AbortSignal): Promise<BookImport> {
+    const directory = this.settings.deploymentDirectory;
     const task = new AbortController();
     const abort = () => task.abort();
     if (signal?.aborted) task.abort();
@@ -44,7 +46,7 @@ export default class Engiware extends Plugin {
     this.imports.add(task);
     const operation = this.importQueue.then(async () => {
       const { importBook } = await import('./engibook');
-      return importBook(this.app.vault, bytes, task.signal);
+      return importBook(this.app, bytes, task.signal, directory);
     });
     this.importQueue = operation.catch(() => undefined);
     try { return await operation; }
@@ -79,7 +81,7 @@ export default class Engiware extends Plugin {
       if (file.size > MAX_ARCHIVE_BYTES) throw new Error('This Engibook exceeds the 128 MiB archive limit.');
       const imported = await this.importEngibook(new Uint8Array(await file.arrayBuffer()), task.signal);
       if (!task.signal.aborted) {
-        new Notice(`Engiware: ${imported.created ? 'Imported' : 'Opened'} ${imported.manifest.title}`);
+        new Notice(`Engiware: ${imported.updated ? 'Updated' : imported.created ? 'Imported' : 'Opened'} ${imported.manifest.title}`);
         await this.app.workspace.getLeaf(false).openFile(imported.entry);
       }
     } catch (error) {
@@ -112,6 +114,12 @@ export default class Engiware extends Plugin {
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  refreshDeployments(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType(ENGIBOOK_VIEW)) {
+      if (leaf.view instanceof EngibookView) leaf.view.refreshDeployment();
+    }
   }
 }
 
@@ -314,6 +322,26 @@ class EngiwareSettingsTab extends PluginSettingTab {
   // also serve the legacy display() below and preserve numeric dropdown values.
   getSettingDefinitions() {
     return [
+      {
+        name: 'Deployment directory',
+        desc: 'Vault-relative folder for extracted components. Leave empty for the vault root. Applies to future imports.',
+        aliases: ['engilib', 'library', 'import', 'extraction', 'folder'],
+        render: setting => {
+          setting.addText(text => text.setPlaceholder('EngiLib').setValue(this.plugin.settings.deploymentDirectory).onChange(async value => {
+            try {
+              const directory = normalizeDeploymentDirectory(value);
+              text.inputEl.setCustomValidity('');
+              setting.setDesc('Vault-relative folder for extracted components. Leave empty for the vault root. Applies to future imports.');
+              this.plugin.settings.deploymentDirectory = directory;
+              await this.plugin.saveSettings();
+              this.plugin.refreshDeployments();
+            } catch (error) {
+              text.inputEl.setCustomValidity(message(error));
+              setting.setDesc(message(error));
+            }
+          }));
+        },
+      },
       {
         name: 'Image-only mode',
         desc: 'Expand images without creating a 3D renderer. Useful for low-powered devices or when WebGL is unavailable.',
