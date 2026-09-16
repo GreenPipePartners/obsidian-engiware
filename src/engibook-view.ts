@@ -28,8 +28,8 @@ export class EngibookView extends FileView {
     this.contentEl.addClass('engiware-book');
     const status = this.contentEl.createDiv({ cls: 'engiware-status', text: 'Reading Engibook…', attr: { role: 'status' } });
     try {
-      const { inspectBook, bookFilename, MAX_ARCHIVE_BYTES } = await import('./engibook');
-      if (file.stat.size > MAX_ARCHIVE_BYTES) throw new Error('This Engibook exceeds the 128 MiB archive limit.');
+      const { inspectBook, bookFilename, MAX_ARCHIVE_BYTES, ARCHIVE_LIMIT_MESSAGE } = await import('./engibook');
+      if (file.stat.size > MAX_ARCHIVE_BYTES) throw new Error(ARCHIVE_LIMIT_MESSAGE);
       const bytes = new Uint8Array(await this.app.vault.readBinary(file));
       const { manifest, expandedBytes } = await inspectBook(bytes, task.signal);
       if (task.signal.aborted) return;

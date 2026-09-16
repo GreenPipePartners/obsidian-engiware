@@ -1,6 +1,6 @@
 {
   "name": "obsidian-engiware",
-  "version": "0.4.0",
+  "version": "0.6.2",
   "private": true,
   "description": "Packaged engineering components and image-first, on-demand 3D previews for Obsidian",
   "license": "MIT",
@@ -20,6 +20,7 @@
     "verify": "npm run lint && npm run check && npm test && npm run build && npm run validate:release"
   },
   "dependencies": {
+    "@greenpipepartners/engispark": "https://github.com/GreenPipePartners/engispark/releases/download/v0.2.0/greenpipepartners-engispark-0.2.0.tgz",
     "fflate": "0.8.3",
     "three": "0.180.0"
   },

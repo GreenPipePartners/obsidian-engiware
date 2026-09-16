@@ -1,0 +1,17 @@
+{
+  "tags": [
+    {
+      "name": "Engispark",
+      "tagType": "Folder",
+      "tags": [
+        {
+          "name": "PS1_DC_OK",
+          "tagType": "AtomicTag",
+          "dataType": "Boolean",
+          "valueSource": "memory",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

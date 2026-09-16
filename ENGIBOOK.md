@@ -29,6 +29,32 @@ The content version appears in the archive filename, not in deployed note or
 asset-folder names. Identity is read from the manifest, so importing never relies
 on splitting a filename or guessing which hyphens belong to the part number.
 
+### Shared component families
+
+Engiware **0.4.1+** also accepts balanced alphanumeric brace groups in a part-number
+family label, for example **`AB_5069-L3{xx}ER{M}_1.0.0.engibook`**. Braces are literal
+filename characters; the importer does not expand them as wildcards. Empty,
+nested, unbalanced, or punctuation-containing groups are rejected. Quote these
+filenames and `--part-number` arguments in shell commands.
+
+Record exact membership as an ordinary component-note list property:
+
+```yaml
+part_number_pattern: "5069-L3{xx}ER{M}"
+associated_part_numbers:
+  - 5069-L320ER
+  - 5069-L320ERM
+default_part_number: 5069-L320ER
+model_part_number: 5069-L320ER
+```
+
+The list should enumerate the catalog numbers supported by that package. Keep
+SKU-specific specifications in a separate table or asset and identify the SKU
+whose markings appear in the preview. These content properties are indexed by
+Obsidian; they do not automatically select a SKU or change geometry/lettering.
+A new family ID has its own deployment and version history, so a prior exact-SKU
+entry is not implicitly renamed or removed.
+
 ## Obsidian integration
 
 The package is the transport format. Engiware extracts its contents through
@@ -124,8 +150,11 @@ URLs retain their meaning. Binary models, PDFs, and images are copied unchanged.
 - Closing the package view or unloading Engiware cancels its pending import work.
 - Browsing or importing a package does not initialize the 3D renderer.
 
-Both formats accept stored/DEFLATE ZIP members, up to 128 MiB of archive data, 256 MiB
-expanded data, and 512 ZIP entries. Absolute/traversal paths, undeclared files,
+Engiware **0.4.2+** accepts stored/DEFLATE ZIP members in both formats, up to **1 GiB
+of archive data**, **2 GiB expanded data**, **1 GiB per member**, and 512 ZIP entries.
+These assembly-sized limits allow full-detail multi-component models and multiple
+door poses in one book. Earlier plugin releases use 128 MiB archive / 256 MiB
+expanded limits; use 0.4.2+ to import larger books. Absolute/traversal paths, undeclared files,
 case-colliding paths, and unsupported format versions are rejected. Compression
 support is bundled with the plugin; import works offline through browser APIs.
 

@@ -60,6 +60,24 @@ test('Python packaging removes the deployment prefix and builds a reproducible p
   } finally { await rm(f.temp, { recursive: true, force: true }); }
 });
 
+test('Python packages literal family brace paths accepted by the TypeScript importer', async () => {
+  const part = '5069-L3{xx}ER{M}', family = `AB_${part}`;
+  const f = await sourceLibrary('EngiLib', family);
+  try {
+    const output = join(f.temp, `${family}_1.0.0.engibook`);
+    const result = spawnSync(python, [script, '--vault', f.temp, '--provider-code', 'AB', '--part-number', part,
+      '--engibook-version', '1.0.0', '--deployment-directory', 'EngiLib', '--output', output], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    const bytes = await readFile(output);
+    const { manifest } = await inspectBook(bytes);
+    assert.equal(manifest.id, family);
+    assert.equal(manifest.partNumber, part);
+    const note = new TextDecoder().decode(unzipSync(bytes)[`${family}.md`]);
+    assert(note.includes(`[[Assets/${family}/manuals/guide.md]]`));
+    assert(note.includes(`model: Assets/${family}/3d_rendered/model.glb`));
+  } finally { await rm(f.temp, { recursive: true, force: true }); }
+});
+
 test('a legacy source is repackaged under the provider_part identity with all asset links adjusted', async () => {
   const f = await sourceLibrary('', '1606-XLE240E');
   try {

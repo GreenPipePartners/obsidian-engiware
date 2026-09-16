@@ -1,0 +1,19 @@
+{
+  "sourceSvg": "1606-XLE240E-panel.svg",
+  "sourceSvgSha256": "53acd280cef32837cf42188037b801dcc9d0c69bff111818bba743833049639e",
+  "sourceDrawing": "2d_scaled_component/1606-XLE240E-panel.excalidraw.md",
+  "sourceElementId": "861f0e79",
+  "sourceElementName": "panel-dc-ok-indicator",
+  "nativeComponent": "ia.shapes.svg",
+  "bindingTargets": {
+    "fill": "props.elements[32].elements[0].fill.paint",
+    "stroke": "props.elements[32].elements[1].stroke.paint"
+  },
+  "sourceViewBox": "0 0 1220 880",
+  "operatorFaceViewBox": "166 194 184 528",
+  "retainedArtwork": {
+    "paths": 510,
+    "labels": 32
+  },
+  "schemaReference": "https://forum.inductiveautomation.com/t/107192/2"
+}

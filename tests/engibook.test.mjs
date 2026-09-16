@@ -140,6 +140,31 @@ test('versioned packages use underscore field boundaries and stable extraction p
   assert.equal(vault.writes.length, before, 'same-version reimport should not rewrite even the receipt');
 });
 
+test('family brace identities preserve deployment links, membership properties, and upgrade ownership', async () => {
+  const identity = componentIdentity('AB', '5069-L3{xx}ER{M}', '1.0.0');
+  const root = `Assets/${identity.id}`;
+  const make = version => fixture(async (files, manifest) => {
+    files[manifest.entrypoint] = strToU8(`---\npart_number_pattern: "5069-L3{xx}ER{M}"\nassociated_part_numbers:\n  - 5069-L320ER\n  - 5069-L320ERM\n---\n\n[[${root}/manuals/manual.pdf]]\n\n\x60\x60\x60engiware\nmodel: ${root}/3d_rendered/model.glb\nimage: ${root}/3d_rendered/image.png\n\x60\x60\x60\nVersion ${version}\n`);
+    manifest.files = await Promise.all(Object.entries(files).map(async ([path, bytes]) => ({ path, bytes: bytes.length, sha256: await sha256(bytes) })));
+  }, componentIdentity('AB', '5069-L3{xx}ER{M}', version));
+  const first = await make('1.0.0');
+  assert.equal(bookFilename((await inspectBook(first.bytes)).manifest), 'AB_5069-L3{xx}ER{M}_1.0.0.engibook');
+  const vault = new MemoryVault();
+  await importToDirectory(vault, first.bytes, undefined, 'Engineering/Components');
+  const notePath = `Engineering/Components/${identity.id}.md`;
+  const note = new TextDecoder().decode(vault.content.get(notePath));
+  assert(note.includes(`[[Engineering/Components/${root}/manuals/manual.pdf]]`));
+  assert(note.includes(`model: Engineering/Components/${root}/3d_rendered/model.glb`));
+  assert(note.includes('associated_part_numbers:\n  - 5069-L320ER\n  - 5069-L320ERM'));
+  const again = await importToDirectory(vault, first.bytes, undefined, 'Engineering/Components');
+  assert.equal(again.updated, 0);
+  assert.equal(again.created, 0);
+  const next = await importToDirectory(vault, (await make('1.0.1')).bytes, undefined, 'Engineering/Components');
+  assert.equal(next.updated, 2, 'only the note and family receipt should update');
+  for (const part of ['5069-L3{xx', '5069-L3xx}', '5069-L3{}', '5069-L3{{xx}}', '5069-L3{../x}', '5069-L3{*}', '5069-L3{xx}.'])
+    assert.throws(() => componentIdentity('AB', part, '1.0.0'), /portable/);
+});
+
 test('a newer version replaces packaged local edits and keeps files absent from the new inventory', async () => {
   const old = await versionedFixture('1.0.0');
   const next = await versionedFixture('1.1.0', files => {

@@ -4,8 +4,9 @@ import type { App, TFile, Vault } from 'obsidian';
 import { DEFAULT_DEPLOYMENT_DIRECTORY, deployedPath, normalizeDeploymentDirectory, rebaseComponentText } from './deployment.ts';
 
 export const ASSET_DIRECTORIES = ['schematic', 'manuals', '2d_scaled_component', '3d_rendered'] as const;
-export const MAX_ARCHIVE_BYTES = 128 * 1024 * 1024;
-const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
+export const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024;
+export const MAX_EXPANDED_BYTES = 2 * 1024 * 1024 * 1024;
+export const ARCHIVE_LIMIT_MESSAGE = 'This Engibook exceeds the 1 GiB archive limit.';
 const MAX_FILES = 512;
 const MANIFEST = 'engibook.json';
 const PENDING = 'engibook-import.json';
@@ -93,9 +94,13 @@ export function compareBookVersions(left: string, right: string): number {
   return a.prerelease.length - b.prerelease.length;
 }
 
+function portableIdentityToken(value: string): boolean {
+  return /^[A-Za-z0-9](?:[A-Za-z0-9._-]|\{[A-Za-z0-9]+\})*$/.test(value) && !value.endsWith('.');
+}
+
 export function componentIdentity(providerCode: string, partNumber: string, engibookVersion: string) {
   if (!/^[A-Z0-9]{1,16}$/.test(providerCode)) throw new Error('Provider code must contain 1–16 uppercase letters or digits.');
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(partNumber) || partNumber.endsWith('.')) throw new Error('Part number must be a portable alphanumeric filename.');
+  if (!portableIdentityToken(partNumber)) throw new Error('Part number or family pattern must be a portable filename with balanced alphanumeric brace groups.');
   const id = `${providerCode}_${partNumber}`;
   if (id.length > 80) throw new Error('The provider code and part number must fit within an 80-character component ID.');
   versionParts(engibookVersion);
@@ -133,7 +138,7 @@ function parseManifest(bytes: Uint8Array, installed = false): BookManifest {
   // JSON formatting; valid compact source manifests can expand beyond 192 KiB.
   const input = readJson(bytes, installed ? MAX_MANIFEST_BYTES * 5 : MAX_MANIFEST_BYTES);
   if (input.format !== 'engibook' || (input.formatVersion !== 1 && input.formatVersion !== 2)) throw new Error('Unsupported Engibook format version.');
-  if (typeof input.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(input.id) || input.id.endsWith('.')) throw new Error('Invalid Engibook component ID.');
+  if (typeof input.id !== 'string' || input.id.length > 80 || !portableIdentityToken(input.id)) throw new Error('Invalid Engibook component ID.');
   let identity;
   if (input.formatVersion === 2) {
     if (typeof input.providerCode !== 'string' || typeof input.partNumber !== 'string' || typeof input.engibookVersion !== 'string') throw new Error('Engibook v2 needs providerCode, partNumber, and engibookVersion.');
@@ -200,7 +205,7 @@ function unpack(bytes: Uint8Array, filter: (file: UnzipFileInfo) => boolean, sig
 }
 
 export async function inspectBook(bytes: Uint8Array, signal?: AbortSignal): Promise<BookInspection> {
-  if (bytes.byteLength > MAX_ARCHIVE_BYTES) throw new Error('This Engibook exceeds the 128 MiB archive limit.');
+  if (bytes.byteLength > MAX_ARCHIVE_BYTES) throw new Error(ARCHIVE_LIMIT_MESSAGE);
   const members = new Map<string, number>();
   const names = new Set<string>();
   let expandedBytes = 0;

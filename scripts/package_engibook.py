@@ -11,15 +11,21 @@ import zipfile
 from pathlib import Path
 
 DIRECTORIES = ('schematic', 'manuals', '2d_scaled_component', '3d_rendered')
+MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024
+MAX_EXPANDED_BYTES = 2 * 1024 * 1024 * 1024
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = re.compile(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$')
+
+
+def portable_identity_token(value):
+    return bool(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9._-]|\{[A-Za-z0-9]+\})*', value)) and not value.endswith('.')
 
 
 def identity(provider_code, part_number, engibook_version):
     if not re.fullmatch(r'[A-Z0-9]{1,16}', provider_code):
         raise ValueError('Provider code must contain 1–16 uppercase letters or digits.')
-    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', part_number) or part_number.endswith('.'):
-        raise ValueError('Part number must be a portable alphanumeric filename.')
+    if not portable_identity_token(part_number):
+        raise ValueError('Part number or family pattern must be a portable filename with balanced alphanumeric brace groups.')
     component = f'{provider_code}_{part_number}'
     if len(component) > 80:
         raise ValueError('The component ID must fit within 80 characters.')
@@ -78,7 +84,7 @@ def package(vault, provider_code, part_number, engibook_version, output=None, ti
     if not title or len(title) > 240:
         raise ValueError('The Engibook needs a component title of up to 240 characters.')
     source = source_component or component
-    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}', source) or source.endswith('.'):
+    if len(source) > 80 or not portable_identity_token(source):
         raise ValueError('Source component must be a portable component ID.')
     deployment = deployment_directory.strip().replace('\\', '/').rstrip('/')
     if deployment and (len(deployment) > 120 or not portable_path(deployment)):
@@ -110,18 +116,18 @@ def package(vault, provider_code, part_number, engibook_version, output=None, ti
         files[destination] = portable_text(path.read_bytes(), destination, deployment, source, component)
     spellings = {}
     for path, data in files.items():
-        if not portable_path(path) or len(data) > 128 * 1024 * 1024:
+        if not portable_path(path) or len(data) > MAX_ARCHIVE_BYTES:
             raise ValueError(f'Invalid or oversized package member: {path}')
         for candidate in [path, *[p.as_posix() for p in Path(path).parents if p.as_posix() != '.']]:
             previous = spellings.setdefault(candidate.lower(), candidate)
             if previous != candidate:
                 raise ValueError(f'Case-conflicting package path: {candidate}')
-    if len(files) >= 512 or sum(map(len, files.values())) > 256 * 1024 * 1024:
+    if len(files) >= 512 or sum(map(len, files.values())) > MAX_EXPANDED_BYTES:
         raise ValueError('This component exceeds the Engibook inventory limits.')
     # Check local references, including the YAML paths used by Engiware previews.
     text = files[entrypoint].decode('utf-8')
     references = set(re.findall(r'\[\[([^]|]+)', text))
-    references.update(re.findall(r'^(?:model|image):\s*(.+)$', text, re.M))
+    references.update(re.findall(r'^(?:model|image|package):\s*(.+)$', text, re.M))
     for reference in references:
         path = reference.split('#', 1)[0]
         if path.startswith('Assets/') and path not in files:
@@ -148,8 +154,8 @@ def package(vault, provider_code, part_number, engibook_version, output=None, ti
             member.external_attr = 0o100644 << 16
             archive.writestr(member, data, compresslevel=6)
     package_bytes = buffer.getvalue()
-    if len(package_bytes) > 128 * 1024 * 1024:
-        raise ValueError('Engibook archive exceeds 128 MiB.')
+    if len(package_bytes) > MAX_ARCHIVE_BYTES:
+        raise ValueError('Engibook archive exceeds 1 GiB.')
     if output.exists() and output.read_bytes() != package_bytes:
         raise ValueError(f'{output.name} already contains different bytes. Use a newer content version.')
     output.parent.mkdir(parents=True, exist_ok=True)

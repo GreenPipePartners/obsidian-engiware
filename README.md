@@ -66,6 +66,11 @@ Engibooks use **`{provider_code}_{part_number}_{engibook_version}.engibook`**.
 Underscores separate the fields; hyphens within a part number are preserved.
 For example, `AB_1606-XLE240E_1.0.0.engibook` uses `AB` for Allen-Bradley.
 
+With **0.4.1+**, shared families can use literal balanced brace groups, such as
+`AB_5069-L3{xx}ER{M}_1.0.0.engibook`. Use the note's `associated_part_numbers` list
+to enumerate exact members and keep their SKU-specific specifications separate.
+See [shared component families](ENGIBOOK.md#shared-component-families).
+
 The content version is independent of the plugin version. All versions of that
 part deploy to the stable ID **`AB_1606-XLE240E`**. The default layout is:
 
@@ -103,7 +108,58 @@ extracted files does not rewrite it.
 
 See [Engibook format and packaging](ENGIBOOK.md) to create your own packages.
 
+## Sample a Perspective view
+
+**Engiware 0.6.2** embeds a native Perspective view as an
+interactive utility. The 1606-XLE240E pilot uses the existing 2D component SVG:
+one Boolean changes its **actual DC OK lamp** between green and red.
+
+The runtime is maintained independently at
+<https://github.com/GreenPipePartners/engispark>. Try the same package in the
+standalone player at <https://greenpipepartners.github.io/engispark/>. Engiware
+bundles the versioned `@greenpipepartners/engispark` library and shared CSS, so
+embedded samples also work offline.
+
+````markdown
+```engispark
+package: EngiLib/Assets/AB_1606-XLE240E/schematic/AB_1606-XLE240E-DC-OK_0.2.0.engispark
+```
+````
+
+Select **Sample view**, then toggle **DC OK signal**. **Reset sample** restores
+the packaged value. Opening the `.engispark` file directly starts the sample too.
+**Extract Ignition files** writes the enclosed native project ZIP, native tag
+JSON and README under `<deployment directory>/Exports/` for Designer import.
+
+The preview evaluates the exact `view.json` from the import ZIP. The current
+native profile covers SVG Drawings, flex containers, labels, checkboxes,
+direct/indirect tag bindings, indexed view-property bindings, bidirectional
+writes and scalar map transforms.
+Unsupported native behavior produces an explicit compatibility error.
+See [Engispark format and runtime](ENGISPARK.md) for boundaries and rebuild steps.
+
 ## Expand an image into 3D
+
+Models with `gpp.termination-anchors@0.1.0` nodes expose **Show terminations** in the expanded
+viewer. Guides start hidden. Select a terminal label to inspect its connection
+kind, evidence status, entry position, outward direction and routing eligibility.
+Amber `?` labels identify provisional locations. The overlay is generated from
+meshless GLB nodes and does not change physical model bounds. Existing GLBs
+continue to display normally.
+
+Termination metadata may additionally carry **`gpp.wire-capacity@0.1.0`**. The
+inspector states **Maximum ferruled wire: … AWG**, its manufacturer or conservative
+area-derived basis, the maximum copper area in mm², collar,
+applicable crimped-envelope/barrel-length limits, and manufacturer evidence.
+Ratings are independently verified, provisional, unknown, or N/A. A geometric
+frame's eligibility does not establish its conductor capacity.
+
+`wireEndFromAwg()` creates AWG-specific requests. `checkWireCapacity()` checks
+the explicit largest-conductor gauge, preparation and recorded limits;
+`resolveWireTerminations()` checks both ends, including shared physical-clamp
+occupancy and geometric eligibility. Bare ends, twin ferrules, unknown ratings,
+missing required ferrule dimensions and ineligible frames cannot authorize a sized
+route. The earlier no-wire `resolveTermination()` call is geometry-only inspection.
 
 Add an `engiware` code block to a note:
 

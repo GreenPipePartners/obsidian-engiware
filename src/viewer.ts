@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { EngiwareSettings } from './config';
 import { requestGraphicsContext } from './graphics';
+import { collectTerminations, TerminationOverlay } from './terminations';
 
 export interface ViewerMetrics {
   opens: number;
@@ -16,9 +17,17 @@ export interface ViewerMetrics {
   lastDrawMs?: number;
   depthBits?: number;
   lastRenderMode?: 'standard' | 'compatibility';
+  terminationCount?: number;
+  rejectedTerminations?: number;
+  visibleTerminations?: number;
 }
 
-export interface ViewerHandle { dispose(): void; reset(): void; }
+export interface ViewerHandle {
+  dispose(): void;
+  reset(): void;
+  terminationCount: number;
+  setTerminationsVisible(visible: boolean): void;
+}
 
 interface Options {
   host: HTMLElement;
@@ -79,6 +88,7 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
   let model: THREE.Object3D | null = null;
   let environment: THREE.WebGLRenderTarget | null = null;
   let sphere: THREE.Sphere | null = null;
+  let terminations: TerminationOverlay | null = null;
   let disposed = false, ready = false, firstFrame = true, dirty = true, warnedSlow = false;
   let frame = 0, timer = 0, lastDraw = 0, slowFrames = 0;
   let renderLimit = compatibilityMode ? Math.min(640, settings.maxDimension) : settings.maxDimension;
@@ -112,6 +122,8 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
         camera.updateProjectionMatrix();
       }
       const start = win.performance.now();
+      camera.updateMatrixWorld();
+      terminations?.update(camera);
       renderer.render(scene, camera);
       const elapsed = win.performance.now() - start;
       metrics.frames++;
@@ -185,6 +197,8 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
     doc.removeEventListener('visibilitychange', visibilityChanged);
     canvas.removeEventListener('webglcontextlost', contextLost);
     signal.removeEventListener('abort', dispose);
+    terminations?.dispose();
+    metrics.visibleTerminations = 0;
     if (model) disposeObject(model);
     environment?.dispose();
     renderer.dispose();
@@ -212,6 +226,14 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
     sphere = box.getBoundingSphere(new THREE.Sphere());
     if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) throw new Error('The model has no displayable geometry.');
     metrics.lastModelSize = box.getSize(new THREE.Vector3()).toArray();
+    const anchors = collectTerminations(model);
+    metrics.terminationCount = anchors.anchors.length;
+    metrics.rejectedTerminations = anchors.rejected;
+    metrics.visibleTerminations = 0;
+    if (anchors.anchors.length) {
+      terminations = new TerminationOverlay(host, anchors.anchors, invalidate);
+      scene.add(terminations.group);
+    }
     const room = new RoomEnvironment();
     const generator = new THREE.PMREMGenerator(renderer);
     try { environment = generator.fromScene(room, 0.04, 0.1, 100, { size: compatibilityMode ? 64 : 128 }); }
@@ -222,7 +244,12 @@ export async function createViewer(options: Options): Promise<ViewerHandle> {
     reset();
     ready = true;
     invalidate();
-    return { dispose, reset };
+    return { dispose, reset, terminationCount: anchors.anchors.length,
+      setTerminationsVisible(visible) {
+        terminations?.setVisible(visible);
+        metrics.visibleTerminations = visible ? anchors.anchors.length : 0;
+      },
+    };
   } catch (error) {
     dispose();
     throw error;

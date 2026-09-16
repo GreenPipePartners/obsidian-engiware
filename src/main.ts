@@ -6,10 +6,13 @@ import type { ViewerHandle, ViewerMetrics } from './viewer';
 import { EngibookView, ENGIBOOK_VIEW } from './engibook-view';
 import type { BookImport } from './engibook';
 import { normalizeDeploymentDirectory } from './deployment.ts';
+import { EngisparkView, ENGISPARK_VIEW, SparkCard } from './engispark-view';
+import { sparkBlock } from './engispark';
 
 export default class Engiware extends Plugin {
   settings: EngiwareSettings = { ...DEFAULT_SETTINGS };
   readonly metrics: ViewerMetrics = { opens: 0, modelReads: 0, contextsCreated: 0, activeViewers: 0, frames: 0 };
+  readonly sparkCards = new Set<SparkCard>();
   private currentModal: PreviewModal | null = null;
   private imports = new Set<AbortController>();
   private importQueue: Promise<unknown> = Promise.resolve();
@@ -20,6 +23,15 @@ export default class Engiware extends Plugin {
     this.addSettingTab(new EngiwareSettingsTab(this));
     this.registerView(ENGIBOOK_VIEW, leaf => new EngibookView(leaf, this));
     this.registerExtensions(['engibook'], ENGIBOOK_VIEW);
+    this.registerView(ENGISPARK_VIEW, leaf => new EngisparkView(leaf, this));
+    this.registerExtensions(['engispark'], ENGISPARK_VIEW);
+    this.registerMarkdownCodeBlockProcessor('engispark', (source, element, context) => {
+      try {
+        context.addChild(new SparkCard(this, element, sparkBlock(parseYaml(source)), context.sourcePath));
+      } catch (error) {
+        element.createDiv({ cls: 'engiware-config-error', text: `Engiware: ${message(error)}` });
+      }
+    });
     this.addCommand({ id: 'import-engibook', name: 'Import .engibook', callback: () => this.chooseEngibook() });
     this.registerMarkdownCodeBlockProcessor('engiware', (source, element, context) => {
       try {
@@ -32,6 +44,7 @@ export default class Engiware extends Plugin {
   }
 
   onunload(): void {
+    this.sparkCards.forEach(card => card.unload());
     this.currentModal?.close();
     this.imports.forEach(task => task.abort());
     this.filePicker?.remove();
@@ -77,8 +90,8 @@ export default class Engiware extends Plugin {
     const task = new AbortController();
     this.imports.add(task);
     try {
-      const { MAX_ARCHIVE_BYTES } = await import('./engibook');
-      if (file.size > MAX_ARCHIVE_BYTES) throw new Error('This Engibook exceeds the 128 MiB archive limit.');
+      const { MAX_ARCHIVE_BYTES, ARCHIVE_LIMIT_MESSAGE } = await import('./engibook');
+      if (file.size > MAX_ARCHIVE_BYTES) throw new Error(ARCHIVE_LIMIT_MESSAGE);
       const imported = await this.importEngibook(new Uint8Array(await file.arrayBuffer()), task.signal);
       if (!task.signal.aborted) {
         new Notice(`Engiware: ${imported.updated ? 'Updated' : imported.created ? 'Imported' : 'Opened'} ${imported.manifest.title}`);
@@ -165,6 +178,8 @@ class PreviewModal extends Modal {
   private imageButton!: HTMLButtonElement;
   private modelButton!: HTMLButtonElement;
   private resetButton!: HTMLButtonElement;
+  private terminationButton!: HTMLButtonElement;
+  private terminationsVisible = false;
   private compatibilityPrompt!: HTMLDivElement;
   private keepImageButton!: HTMLButtonElement;
   private pendingConfirmation: ((confirmed: boolean) => void) | null = null;
@@ -182,6 +197,15 @@ class PreviewModal extends Modal {
     this.imageButton = toolbar.createEl('button', { text: 'Image', attr: { type: 'button' } });
     this.modelButton = toolbar.createEl('button', { text: '3D view', attr: { type: 'button' } });
     this.resetButton = toolbar.createEl('button', { text: 'Reset view', attr: { type: 'button' } });
+    this.terminationButton = toolbar.createEl('button', { text: 'Show terminations', attr: { type: 'button', 'aria-pressed': 'false' } });
+    this.terminationButton.hidden = true;
+    this.terminationButton.addEventListener('click', () => {
+      if (!this.viewer?.terminationCount) return;
+      this.terminationsVisible = !this.terminationsVisible;
+      this.viewer.setTerminationsVisible(this.terminationsVisible);
+      this.terminationButton.setAttribute('aria-pressed', String(this.terminationsVisible));
+      this.terminationButton.setText(this.terminationsVisible ? 'Hide terminations' : 'Show terminations');
+    });
     this.imageButton.addEventListener('click', () => this.showImage('Image preview.'));
     this.modelButton.addEventListener('click', () => { void this.show3D(); });
     this.resetButton.addEventListener('click', () => this.viewer?.reset());
@@ -225,6 +249,12 @@ class PreviewModal extends Modal {
     this.finishConfirmation(false);
     this.viewer?.dispose();
     this.viewer = null;
+    this.terminationsVisible = false;
+    if (this.terminationButton) {
+      this.terminationButton.hidden = true;
+      this.terminationButton.setAttribute('aria-pressed', 'false');
+      this.terminationButton.setText('Show terminations');
+    }
     this.renderHost?.empty();
   }
 
@@ -301,7 +331,10 @@ class PreviewModal extends Modal {
         },
       });
       if (!current()) viewer.dispose();
-      else this.viewer = viewer;
+      else {
+        this.viewer = viewer;
+        this.terminationButton.hidden = viewer.terminationCount === 0;
+      }
     } catch (error) {
       if (current()) this.showImage(`${message(error)} Image preview is still available.`);
     }
